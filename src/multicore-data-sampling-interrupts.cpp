@@ -44,6 +44,31 @@ void IRAM_ATTR addTaskIdToQueueUniversal(void *taskId)
     }
 }
 
+// void IRAM_ATTR InterruptHandlerADC_DRDY()
+// {
+//     // Variable to check if a higher priority task needs to be woken
+//     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+//     short taskId = 1;
+
+//     // Add task id to queue (from ISR)
+//     xQueueSendFromISR(interruptsTasksQueue, (short *)taskId, &xHigherPriorityTaskWoken);
+//     // {
+//     //     // Successfully added task to queue, now give semaphore to unblock the processing task
+//     //     xSemaphoreGiveFromISR(taskSemaphore, &xHigherPriorityTaskWoken);
+
+//     //     // If xHigherPriorityTaskWoken was set to true, yield to ensure the higher-priority task is executed
+//     //     if (xHigherPriorityTaskWoken == pdTRUE)
+//     //     {
+//     //         portYIELD_FROM_ISR();
+//     //     }
+//     // }
+//     // else
+//     // {
+//     //     // Failed to post the message (optional logging or error handling)
+//     // }
+// }
+
 multicoreDataSamplingInterrupts::multicoreDataSamplingInterrupts()
 {
 }
@@ -175,6 +200,37 @@ void multicoreDataSamplingInterrupts::quickTasksProcessingThread(void *parameter
     {
         runTask(i);
     }
+
+    Serial.println("Start ADS131M08");
+
+    adc.begin(
+      ESP_GPIO_CS_ANALOG_1,
+      ESP_GPIO_ANALOG_DRDY,
+      ESP_GPIO_RESET,
+      spi);
+
+    adc.reset();
+    delay(200);
+
+    adc.set_data_rate(500); // Set data rate in Hz
+
+    // Configure the channels
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        adc.set_channel_enable(i, ADS131M08_ChannelState::ENABLE);
+        adc.set_channel_pga(i, 32); // Set PGA Gain as gain number
+        // adc.setFullScale(i, 1.2); // Set based on Table 8-1. Full-Scale Range if you use float
+    }
+
+    delay(200);
+
+    Serial.printf("ID: %d\n", adc.getId());
+    Serial.printf("MODE: %d\n", adc.getModeReg());
+    Serial.printf("CLOCK: %d\n", adc.getClockReg());
+    Serial.printf("CFG: %d\n", adc.getCfgReg());
+    Serial.println("ADS131M08 ready\n");
+
+
 
     for (;;)
     {

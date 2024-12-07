@@ -5,11 +5,18 @@
 #include <Arduino.h>
 #include <ESP32TimerInterrupt.hpp> //https://github.com/khoih-prog/ESP32TimerInterrupt
 // FIXME: change to new version of ESP32TimerInterrupt library
+
+#include "ADS131M08.h"
+#include <SPI.h>
+
+#include "config_esp32_biosignals.h"
+
 #define I_TIMER0_INTERVAL_MS 1L
 
 // Something should be outside of class to be able to use it in ISR
 bool IRAM_ATTR ITimerHandler0(void *timerNo);
-void addTaskIdToQueueUniversal(void *taskId);
+void IRAM_ATTR InterruptHandlerADC_DRDY();
+void IRAM_ATTR addTaskIdToQueueUniversal(void *taskId);
 int get_irqTasksMapSize();
 
 typedef void (*irqCallback)();        // no arguments
@@ -30,6 +37,10 @@ extern QueueHandle_t interruptsTasksQueue;
 extern ESP32Timer ITimer0;        // Init ESP32 timer 0
 extern ESP32_ISR_Timer ISR_Timer; // Init ESP32_ISR_Timer
 extern irqUniversalTaskStruct irqTasksMap[];
+
+extern SPIClass spi;
+extern ADS131M08 adc;
+extern int32_t adc_raw_array[];
 
 class multicoreDataSamplingInterrupts
 {

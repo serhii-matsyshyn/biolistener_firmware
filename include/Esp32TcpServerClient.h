@@ -7,9 +7,9 @@
 #include <ESP32TimerInterrupt.hpp> //https://github.com/khoih-prog/ESP32TimerInterrupt
 
 // Configuration
-#define WIFI_SSID "wifi_nb_2"
-#define WIFI_PASSWORD "300900800RN"
-#define SERVER_IP "192.168.137.1"
+#define WIFI_SSID "..."
+#define WIFI_PASSWORD "..."
+#define SERVER_IP "192.168.1.5"
 #define SERVER_PORT 12345
 
 typedef void (*irqCallback)();        // no arguments

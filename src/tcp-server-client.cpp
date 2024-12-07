@@ -59,6 +59,7 @@ void Esp32TcpServerCLient::tcpSendTask(void *parameter) {
         // Block until a message is received
         if (xQueueReceive(messageQueue, &message, portMAX_DELAY) == pdPASS) {
             if (client.connected()) {
+                // Serial.printf("Sending message: %s\n", message);
                 client.print(message);
             }
         }
