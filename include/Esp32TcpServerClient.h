@@ -4,18 +4,31 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <ArduinoJson.h>
+// #include "multicore-data-sampling-interrupts.h"
+#include "config_esp32_biosignals.h"
 #include <ESP32TimerInterrupt.hpp> //https://github.com/khoih-prog/ESP32TimerInterrupt
 
 // Configuration
-#define WIFI_SSID "..."
-#define WIFI_PASSWORD "..."
-#define SERVER_IP "192.168.1.5"
 #define SERVER_PORT 12345
 
 typedef void (*irqCallback)();        // no arguments
 typedef void (*irqCallbackP)(void *); // one argument
 
+// doc["ts"] = millis();
+//             doc["type"] = 1;
+//             doc["n"] = counter;
+//             doc["s_id"] = ADC_USED;
+//             JsonArray data = doc.createNestedArray("data");
+//             for (int i = 0; i < 8; i++)
+//             {
+//                 data.add(adc_raw_array[i]);
+
+
+
 #define EVERY_DOING_NOTHING_DO_DELAY 50
+
+extern QueueHandle_t interruptsTasksQueue;
+// extern multicoreDataSamplingInterrupts multicoreDataSamplingInterruptsModule;
 
 class Esp32TcpServerCLient
 {
@@ -25,17 +38,18 @@ public:
     void tcpTask();                  // Task to handle TCP communication (to run on second core)
     static TaskHandle_t tcpTaskHandle;
     static QueueHandle_t messageQueue;
+    static QueueHandle_t commandQueue;
     
     void tcpSendTask(void *parameter);
     void tcpConnectionTask(void *parameter);
     void receiveTask(void *parameter);
     EventGroupHandle_t tcpEvents;
 
+    static void addCommandToCommandQueue(const String &command);
+    static WiFiClient client;
+
 private:
     static void reconnect();                           // Reconnect if TCP connection is lost
-    static void processCommand(const String &command); // Process commands received from the server
-
-    static WiFiClient client;
 };
 
 #endif

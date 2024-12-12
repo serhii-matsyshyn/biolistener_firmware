@@ -312,7 +312,7 @@ enum ADS131M08_PgaGain
 #define SPI_MASTER_DUMMY16 0xFFFF
 #define SPI_MASTER_DUMMY32 0xFFFFFFFF
 
-#define ads131m08_spi_settings SPISettings(1000000, MSBFIRST, SPI_MODE1)
+#define ads131m08_spi_settings SPISettings(20000000, MSBFIRST, SPI_MODE1)
 
 class ADS131M08
 {

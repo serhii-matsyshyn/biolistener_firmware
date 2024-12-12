@@ -16,5 +16,38 @@
 #define ESP_IMU_INT 32
 #define ESP_GPIO_CS_ANALOG_2 4
 
+#define TaskId_SendDebugMessage 0
+#define TaskId_SendBiosignalData 1
+#define TaskId_ProcessCommand 2
+
+#define BIOLISTENER_COMMAND_UNDEFINED 0
+#define BIOLISTENER_COMMAND_SET_ADC_DATA_RATE 1
+#define BIOLISTENER_COMMAND_SET_ADC_CHANNEL_ENABLE 2
+#define BIOLISTENER_COMMAND_SET_ADC_CHANNEL_PGA 3
+#define BIOLISTENER_COMMAND_RESET_ADC 4
+#define BIOLISTENER_COMMAND_START_SAMPLING 5
+#define BIOLISTENER_COMMAND_STOP_SAMPLING 6
+
+#define ADC_ADS131M08 0
+#define ADC_AD7771 1
+
+#define COMBINED_DATA_PACKET_NUM 50
+
+typedef struct data_packet
+{
+    uint8_t header;
+
+    uint32_t ts;
+
+    uint8_t type;
+
+    uint32_t n;
+
+    uint8_t s_id;
+
+    int32_t data[8];
+
+    uint8_t footer;
+} __attribute__ ((packed)) data_packet;
 
 #endif // CONFIG_ESP32_BIOSIGNALS_H

@@ -1,6 +1,18 @@
 #include "multicore-data-sampling-interrupts.h"
 
-SemaphoreHandle_t taskSemaphore;
+#include "soc/timer_group_struct.h"
+#include "soc/timer_group_reg.h"
+void feedTheDog()
+{
+    // feed dog 0
+    TIMERG0.wdt_wprotect = TIMG_WDT_WKEY_VALUE; // write enable
+    TIMERG0.wdt_feed = 1;                       // feed dog
+    TIMERG0.wdt_wprotect = 0;                   // write protect
+    // feed dog 1
+    TIMERG1.wdt_wprotect = TIMG_WDT_WKEY_VALUE; // write enable
+    TIMERG1.wdt_feed = 1;                       // feed dog
+    TIMERG1.wdt_wprotect = 0;                   // write protect
+}
 
 ESP32Timer ITimer0(0);     // Init ESP32 timer 0
 ESP32_ISR_Timer ISR_Timer; // Init ESP32_ISR_Timer
@@ -8,6 +20,7 @@ QueueHandle_t interruptsTasksQueue;
 TaskHandle_t multicoreDataSamplingInterrupts::quickTasksProcessingThreadHandle;
 
 // CAN BE USED IN ISR ONLY!!! DO NOT USE!!!
+// Note from repo khoih-prog/ESP32TimerInterrupt:
 // With core v2.0.0+, you can't use Serial.print/println in ISR or crash.
 // and you can't use float calculation inside ISR
 // Only OK in core v1.0.6-
@@ -18,6 +31,7 @@ bool IRAM_ATTR ITimerHandler0(void *timerNo)
 }
 
 // CAN BE USED IN ISR ONLY!!! DO NOT USE!!!
+// Note from repo khoih-prog/ESP32TimerInterrupt:
 // In ESP32, avoid doing something fancy in ISR, for example complex Serial.print with String() argument
 // The pure simple Serial.prints here are just for demonstration and testing. Must be eliminate in working environment
 // Or you can get this run-time error / crash
@@ -29,9 +43,6 @@ void IRAM_ATTR addTaskIdToQueueUniversal(void *taskId)
     // Add task id to queue (from ISR)
     if (xQueueSendFromISR(interruptsTasksQueue, (short *)taskId, &xHigherPriorityTaskWoken) == pdPASS)
     {
-        // Successfully added task to queue, now give semaphore to unblock the processing task
-        xSemaphoreGiveFromISR(taskSemaphore, &xHigherPriorityTaskWoken);
-
         // If xHigherPriorityTaskWoken was set to true, yield to ensure the higher-priority task is executed
         if (xHigherPriorityTaskWoken == pdTRUE)
         {
@@ -44,49 +55,14 @@ void IRAM_ATTR addTaskIdToQueueUniversal(void *taskId)
     }
 }
 
-// void IRAM_ATTR InterruptHandlerADC_DRDY()
-// {
-//     // Variable to check if a higher priority task needs to be woken
-//     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-
-//     short taskId = 1;
-
-//     // Add task id to queue (from ISR)
-//     xQueueSendFromISR(interruptsTasksQueue, (short *)taskId, &xHigherPriorityTaskWoken);
-//     // {
-//     //     // Successfully added task to queue, now give semaphore to unblock the processing task
-//     //     xSemaphoreGiveFromISR(taskSemaphore, &xHigherPriorityTaskWoken);
-
-//     //     // If xHigherPriorityTaskWoken was set to true, yield to ensure the higher-priority task is executed
-//     //     if (xHigherPriorityTaskWoken == pdTRUE)
-//     //     {
-//     //         portYIELD_FROM_ISR();
-//     //     }
-//     // }
-//     // else
-//     // {
-//     //     // Failed to post the message (optional logging or error handling)
-//     // }
-// }
+void IRAM_ATTR InterruptHandlerADC_DRDY()
+{
+    short taskId = TaskId_SendBiosignalData;
+    addTaskIdToQueueUniversal((void *)&taskId);
+}
 
 multicoreDataSamplingInterrupts::multicoreDataSamplingInterrupts()
 {
-}
-
-bool multicoreDataSamplingInterrupts::init()
-{
-    interruptsTasksQueue = xQueueCreate(interruptsTasksQueueLength, sizeof(u_int8_t));
-    taskSemaphore = xSemaphoreCreateBinary();
-
-    if (interruptsTasksQueue == NULL)
-    {
-        printf("Error creating the queue");
-        return false;
-    }
-
-    _init = true;
-
-    return true;
 }
 
 bool multicoreDataSamplingInterrupts::begin(short interruptsTasksQueueLengthValue, int numberOfTasks)
@@ -96,7 +72,17 @@ bool multicoreDataSamplingInterrupts::begin(short interruptsTasksQueueLengthValu
 
     if (!_init && interruptsTasksQueueLength)
     {
-        return init();
+        interruptsTasksQueue = xQueueCreate(interruptsTasksQueueLength, sizeof(u_int8_t));
+
+        if (interruptsTasksQueue == NULL)
+        {
+            printf("Error creating the queue");
+            return false;
+        }
+
+        _init = true;
+
+        return true;
     }
     else
     {
@@ -187,7 +173,6 @@ bool multicoreDataSamplingInterrupts::manuallyAddTaskIdToTasksQueue(short taskId
         // Failed to post the message
         return false;
     }
-    xSemaphoreGive(taskSemaphore);
 
     return true;
 }
@@ -198,53 +183,33 @@ void multicoreDataSamplingInterrupts::quickTasksProcessingThread(void *parameter
 
     for (int i = 0; i < numberOfTasks; i++)
     {
-        runTask(i);
+        if (irqTasksMap[i].runFromBegin)
+        {
+            runTask(i);
+        }
     }
 
-    Serial.println("Start ADS131M08");
+    Serial.println("Start ADC");
 
     adc.begin(
-      ESP_GPIO_CS_ANALOG_1,
-      ESP_GPIO_ANALOG_DRDY,
-      ESP_GPIO_RESET,
-      spi);
+        ESP_GPIO_CS_ANALOG_1,
+        ESP_GPIO_ANALOG_DRDY,
+        ESP_GPIO_RESET,
+        spi);
 
-    adc.reset();
-    delay(200);
-
-    adc.set_data_rate(500); // Set data rate in Hz
-
-    // Configure the channels
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        adc.set_channel_enable(i, ADS131M08_ChannelState::ENABLE);
-        adc.set_channel_pga(i, 32); // Set PGA Gain as gain number
-        // adc.setFullScale(i, 1.2); // Set based on Table 8-1. Full-Scale Range if you use float
-    }
-
-    delay(200);
-
-    Serial.printf("ID: %d\n", adc.getId());
-    Serial.printf("MODE: %d\n", adc.getModeReg());
-    Serial.printf("CLOCK: %d\n", adc.getClockReg());
-    Serial.printf("CFG: %d\n", adc.getCfgReg());
-    Serial.println("ADS131M08 ready\n");
-
-
+    // reset ADC
+    esp32Tcp.addCommandToCommandQueue("{\"command\": " + String(BIOLISTENER_COMMAND_RESET_ADC) + "}");
 
     for (;;)
     {
-        if (xSemaphoreTake(taskSemaphore, portMAX_DELAY) == pdTRUE)
+        u_int8_t taskCodeId;
+
+        if (xQueueReceive(interruptsTasksQueue, &taskCodeId, portMAX_DELAY) == pdPASS)
         {
-            u_int8_t taskCodeId;
-
-            if (xQueueReceive(interruptsTasksQueue, &taskCodeId, 0) == pdPASS)
-            {
-                processTask(taskCodeId);
-            }
+            processTask(taskCodeId);
         }
-
         delay(0);
+        feedTheDog();
     }
 
     // Delete this task if ever needed (unlikely reached)

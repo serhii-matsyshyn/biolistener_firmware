@@ -5,7 +5,7 @@
 #include <Arduino.h>
 #include <ESP32TimerInterrupt.hpp> //https://github.com/khoih-prog/ESP32TimerInterrupt
 // FIXME: change to new version of ESP32TimerInterrupt library
-
+#include "Esp32TcpServerClient.h"
 #include "ADS131M08.h"
 #include <SPI.h>
 
@@ -31,6 +31,7 @@ struct irqUniversalTaskStruct
   short irqInternalId;
   bool active;
   bool stop;
+  bool runFromBegin;
 };
 
 extern QueueHandle_t interruptsTasksQueue;
@@ -42,10 +43,12 @@ extern SPIClass spi;
 extern ADS131M08 adc;
 extern int32_t adc_raw_array[];
 
+
+extern Esp32TcpServerCLient esp32Tcp;
+
 class multicoreDataSamplingInterrupts
 {
 private:
-  bool init();
   bool _init{false};
 
   short interruptsTasksQueueLength{100};
