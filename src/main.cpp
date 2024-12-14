@@ -4,7 +4,7 @@
 #if (ADC_USED == ADC_ADS131M08)
 #include "ADS131M08.h"
 #elif (ADC_USED == ADC_AD7771)
-// #include "AD7771.h"
+// #include "ad7779.h"
 #else
 #error "ADC_USED is not defined or is not valid"
 #endif
@@ -18,16 +18,17 @@
 #include <WiFiUdp.h>
 WiFiUDP udpClient;
 
-SPIClass spi(VSPI);
+SPIClass spi(HSPI);
 #if (ADC_USED == ADC_ADS131M08)
 ADS131M08 adc;
+int32_t adc_raw_array[ADS131M08_NUM_CHANNELS] = {0};
 #elif (ADC_USED == ADC_AD7771)
-// AD7771 adc;
+AD7779 adc(true, {7, 6, 5, 4, 0, 1, 2, 3});
+uint32_t adc_raw_array[AD777x_NUM_CHANNELS] = {0};
 #else
 #error "ADC_USED is not defined or is not valid"
 #endif
 
-int32_t adc_raw_array[ADS131M08_NUM_CHANNELS] = {0};
 
 Esp32TcpServerCLient esp32Tcp;
 multicoreDataSamplingInterrupts multicoreDataSamplingInterruptsModule;
@@ -81,25 +82,64 @@ void processTask(u_int8_t taskCodeId)
         static size_t last_millis = millis();
         static data_packet listener_packet;
         static size_t counter = 0;
-        adc.do_read_adc(adc_raw_array);
-        Serial.printf("%d,%d,%d,%d,%d,%d,%d,%d\n", adc_raw_array[0], adc_raw_array[1], adc_raw_array[2], adc_raw_array[3], adc_raw_array[4], adc_raw_array[5], adc_raw_array[6], adc_raw_array[7]);
+        int32_t ret = adc.do_read_adc(adc_raw_array);
 
-        // StaticJsonDocument<1024> doc;
-        // doc["ts"] = millis();
-        // doc["type"] = 1;
-        // doc["n"] = counter;
-        // doc["s_id"] = ADC_USED;
-        // JsonArray data = doc.createNestedArray("data");
-        // for (int i = 0; i < 8; i++)
+        if (ret != 0)
+        {
+            // Serial.printf("Error reading ADC: %d\n", ret);
+            return;
+        }
+        // Serial.printf("%d,%d,%d,%d,%d,%d,%d,%d\n", adc_raw_array[0], adc_raw_array[1], adc_raw_array[2], adc_raw_array[3], adc_raw_array[4], adc_raw_array[5], adc_raw_array[6], adc_raw_array[7]);
+
+        // // Debugging errors on SPI line
+        // double ref_mV = 2500.0; // 2.5V reference voltage
+        // double ref_microV = ref_mV * 1000.0;
+        // double pga_gain = 8.0;  // PGA gain of 1
+        // double result_mV[AD777x_NUM_CHANNELS];
+        // for (int i = 0; i < AD777x_NUM_CHANNELS; i++)
         // {
-        //     data.add(adc_raw_array[i]);
-        //     // Serial.printf("Adding i=%d, value=%d\n", i, adc_raw_array[i]);
+        //     result_mV[i] = adc.data_to_millivolts(ref_microV, adc_raw_array[i], pga_gain);
         // }
 
-        // char buffer[128];
-        // // serializeJson(doc, buffer);
-        // serializeMsgPack(doc, buffer);
-        // strcat(buffer, "\n"); // add /n to the end of the message
+        // bool send = true;
+        // bool same = true;
+        // uint32_t first = adc_raw_array[0];
+        // for (int i = 0; i < 7; i++)
+        // {
+        //     if (result_mV[i] < -500 || result_mV[i] > 500 ) // & adc_raw_array[i] != first)
+        //     {
+        //         send = false;
+        //         break;
+        //     }
+        // }
+
+        // for (int i = 0; i < 8; i++)
+        // {
+        //     if (adc_raw_array[i] != first)
+        //     {
+        //         same = false;
+        //         break;
+        //     }
+        // }
+
+        // if (!send) {
+        //     digitalWrite(25, HIGH);
+        //     Serial.printf("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\r\n",
+        //           result_mV[0],
+        //           result_mV[1],
+        //           result_mV[2],
+        //           result_mV[3],
+        //           result_mV[4],
+        //           result_mV[5],
+        //           result_mV[6],
+        //           result_mV[7]);
+            
+        // }
+
+        // if (!send || same)
+        // {
+        //     return;
+        // }
 
         counter++;
         listener_packet = {0xA0, millis(), 1, counter, ADC_USED, {adc_raw_array[0], adc_raw_array[1], adc_raw_array[2], adc_raw_array[3], adc_raw_array[4], adc_raw_array[5], adc_raw_array[6], adc_raw_array[7]}, 0xC0};
@@ -114,8 +154,10 @@ void processTask(u_int8_t taskCodeId)
         if (xQueueSend(esp32Tcp.messageQueue, &listener_packet, 0) != pdPASS)
         {
             // Failed to post the message
-            Serial.println("Failed to post the message - Queue is full");
+            // Serial.println("Failed to post the message - Queue is full");
         }
+
+        // digitalWrite(25, LOW);
     }
     else if (taskCodeId == TaskId_ProcessCommand)
     {
@@ -160,6 +202,7 @@ void processTask(u_int8_t taskCodeId)
                 // {"command": X}
                 detachInterrupt(ESP_GPIO_ANALOG_DRDY);
 
+#if (ADC_USED == ADC_ADS131M08)
                 adc.reset();
                 delay(200);
 
@@ -171,6 +214,24 @@ void processTask(u_int8_t taskCodeId)
                     adc.set_channel_enable(i, true);
                     adc.set_channel_pga(i, 1); // Set PGA Gain as gain number
                 }
+#elif (ADC_USED == ADC_AD7771)
+// FIXME: set reset
+                int32_t ret = adc.configure_sd_data_convertion_mode();
+
+                Serial.println("2 - AD7779 initialized");
+                if (SUCCESS != ret)
+                {
+                    delay(50);
+                    uint8_t reg = 0;
+                    ret = adc.spi_int_reg_read(AD7779_REG_GEN_ERR_REG_1_EN, &reg);
+                    while (1)
+                    {
+                        Serial.printf("PANIC: Failed to initialize ad777x! %d. Reg hex: %x\r\n", ret, reg);
+                        delay(5000);
+                    }
+                }
+
+#endif
 
                 delay(200);
 
@@ -272,6 +333,9 @@ void setup()
         Serial.println("Connecting to WiFi...");
     }
     Serial.println("Connected to WiFi");
+
+    // pinMode(25, OUTPUT);
+    // digitalWrite(25, LOW);
 
     // Print local IP address
     Serial.print("Local IP address: ");

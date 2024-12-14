@@ -6,7 +6,15 @@
 #include <ESP32TimerInterrupt.hpp> //https://github.com/khoih-prog/ESP32TimerInterrupt
 // FIXME: change to new version of ESP32TimerInterrupt library
 #include "Esp32TcpServerClient.h"
+
+#if (ADC_USED == ADC_ADS131M08)
 #include "ADS131M08.h"
+#elif (ADC_USED == ADC_AD7771)
+#include "ad7779.h"
+#else
+#error "ADC_USED is not defined or is not valid"
+#endif
+
 #include <SPI.h>
 
 #include "config_esp32_biosignals.h"
@@ -40,8 +48,16 @@ extern ESP32_ISR_Timer ISR_Timer; // Init ESP32_ISR_Timer
 extern irqUniversalTaskStruct irqTasksMap[];
 
 extern SPIClass spi;
+
+#if (ADC_USED == ADC_ADS131M08)
 extern ADS131M08 adc;
 extern int32_t adc_raw_array[];
+#elif (ADC_USED == ADC_AD7771)
+extern AD7779 adc;
+extern uint32_t adc_raw_array[];
+#else
+#error "ADC_USED is not defined or is not valid"
+#endif
 
 
 extern Esp32TcpServerCLient esp32Tcp;
