@@ -21,7 +21,7 @@ WiFiUDP udpClient;
 SPIClass spi(HSPI);
 #if (ADC_USED == ADC_ADS131M08)
 ADS131M08 adc;
-int32_t adc_raw_array[ADS131M08_NUM_CHANNELS] = {0};
+uint32_t adc_raw_array[ADS131M08_NUM_CHANNELS] = {0};
 #elif (ADC_USED == ADC_AD7771)
 AD7779 adc(true, {7, 6, 5, 4, 0, 1, 2, 3});
 uint32_t adc_raw_array[AD777x_NUM_CHANNELS] = {0};

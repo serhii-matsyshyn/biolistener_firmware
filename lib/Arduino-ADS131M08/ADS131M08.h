@@ -19,6 +19,7 @@ Datasheet = https://www.ti.com/lit/ds/symlink/ads131m08.pdf
 typedef union
 {
   int32_t i;
+  uint32_t u_i32;
   float f;
   uint16_t u[2];
   uint8_t b[4];
@@ -312,6 +313,8 @@ enum ADS131M08_PgaGain
 #define SPI_MASTER_DUMMY16 0xFFFF
 #define SPI_MASTER_DUMMY32 0xFFFFFFFF
 
+#define CRC_CCITT
+
 #define ads131m08_spi_settings SPISettings(20000000, MSBFIRST, SPI_MODE1)
 
 class ADS131M08
@@ -348,9 +351,7 @@ public:
   uint16_t getModeReg();
   uint16_t getClockReg();
   uint16_t getCfgReg();
-  AdcOutput readAdcRaw(void);
-  AdcOutput readAdcFloat(void);
-  bool do_read_adc(int32_t *adc_raw_array);
+  int32_t do_read_adc(uint32_t *adc_raw_array);
 
 private:
   uint8_t csPin;
@@ -368,5 +369,9 @@ private:
   uint16_t readRegister(uint8_t address);
   float scaleResult(uint8_t);
   AdcOutput scaleResult(void);
+  uint16_t calculateCRC(const uint8_t dataBytes[], uint8_t numberBytes, uint16_t initialValue);
+  bool readAdcRaw(void);
+  AdcOutput readAdcFloat(void);
+
 };
 #endif

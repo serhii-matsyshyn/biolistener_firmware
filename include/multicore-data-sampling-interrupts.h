@@ -48,13 +48,12 @@ extern ESP32_ISR_Timer ISR_Timer; // Init ESP32_ISR_Timer
 extern irqUniversalTaskStruct irqTasksMap[];
 
 extern SPIClass spi;
+extern uint32_t adc_raw_array[];
 
 #if (ADC_USED == ADC_ADS131M08)
 extern ADS131M08 adc;
-extern int32_t adc_raw_array[];
 #elif (ADC_USED == ADC_AD7771)
 extern AD7779 adc;
-extern uint32_t adc_raw_array[];
 #else
 #error "ADC_USED is not defined or is not valid"
 #endif

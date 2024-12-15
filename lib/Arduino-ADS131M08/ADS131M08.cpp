@@ -676,61 +676,161 @@ uint16_t ADS131M08::getCfgReg()
   return readRegister(REG_CFG);
 }
 
-AdcOutput ADS131M08::readAdcRaw(void)
+//*****************************************************************************
+//
+//! Calculates the 16-bit CRC for the selected CRC polynomial.
+//! Source: https://github.com/TexasInstruments/precision-adc-examples
+//!
+//! \fn uint16_t calculateCRC(const uint8_t dataBytes[], uint8_t numberBytes, uint16_t initialValue)
+//!
+//! \param dataBytes[] pointer to first element in the data byte array
+//! \param numberBytes number of bytes to be used in CRC calculation
+//! \param initialValue the seed value (or partial crc calculation), use 0xFFFF when beginning a new CRC computation
+//!
+//! NOTE: This calculation is shown as an example and is not optimized for speed.
+//!
+//! \return 16-bit calculated CRC word
+//
+//*****************************************************************************
+uint16_t ADS131M08::calculateCRC(const uint8_t dataBytes[], uint8_t numberBytes, uint16_t initialValue)
 {
-  // TODO: CRC check can be added based on CCITT, but it will slow down the reading
+	/* Check that "dataBytes" is not a null pointer */
+	assert(dataBytes != 0x00);
+
+	int         bitIndex, byteIndex;
+	bool        dataMSb;						/* Most significant bit of data byte */
+	bool        crcMSb;						    /* Most significant bit of crc byte  */
+	uint8_t     bytesPerWord = 3;
+
+	/*
+     * Initial value of crc register
+     * NOTE: The ADS131M0x defaults to 0xFFFF,
+     * but can be set at function call to continue an on-going calculation
+     */
+    uint16_t crc = initialValue;
+
+    #ifdef CRC_CCITT
+    /* CCITT CRC polynomial = x^16 + x^12 + x^5 + 1 */
+    const uint16_t poly = 0x1021;
+    #endif
+
+    #ifdef CRC_ANSI
+    /* ANSI CRC polynomial = x^16 + x^15 + x^2 + 1 */
+    const uint16_t poly = 0x8005;
+    #endif
+
+    //
+    // CRC algorithm
+    //
+
+    // Loop through all bytes in the dataBytes[] array
+	for (byteIndex = 0; byteIndex < numberBytes; byteIndex++)
+	{
+	    // Point to MSb in byte
+	    bitIndex = 0x80u;
+
+	    // Loop through all bits in the current byte
+	    while (bitIndex > 0)
+	    {
+	        // Check MSB's of data and crc
+	        dataMSb = (bool) (dataBytes[byteIndex] & bitIndex);
+	        crcMSb  = (bool) (crc & 0x8000u);
+
+	        crc <<= 1;              /* Left shift CRC register */
+
+	        // Check if XOR operation of MSBs results in additional XOR operations
+	        if (dataMSb ^ crcMSb)
+	        {
+	            crc ^= poly;        /* XOR crc with polynomial */
+	        }
+
+	        /* Shift MSb pointer to the next data bit */
+	        bitIndex >>= 1;
+	    }
+	}
+
+	return crc;
+}
+
+
+bool ADS131M08::readAdcRaw(void)
+{
   uint8_t x = 0;
   uint8_t x2 = 0;
   uint8_t x3 = 0;
-  int32_t aux;
+  uint8_t x_arr[3] = {0};
+  uint32_t aux;
   AdcOutput res;
+  uint16_t crcWord = 0xFFFF;  // Initial value for CRC calculation
 
   digitalWrite(csPin, LOW);
   delayMicroseconds(1);
 
-  x = spi.transfer(0x00);
-  x2 = spi.transfer(0x00);
-  spi.transfer(0x00);
+  // Read the status register
+  for (int i=0; i<3; i++) {
+    x_arr[i] = spi.transfer(0x00);
+  }
 
-  this->resultRaw.status = ((x << 8) | x2);
+  crcWord = calculateCRC(&x_arr[0], 3, crcWord);
+
+  this->resultRaw.status = ((x_arr[0] << 8) | x_arr[1]);
 
   for (int i = 0; i < 8; i++)
   {
-    x = spi.transfer(0x00);
-    x2 = spi.transfer(0x00);
-    x3 = spi.transfer(0x00);
+    for (int j=0; j<3; j++) {
+      x_arr[j] = spi.transfer(0x00);
+    }
 
-    aux = (((x << 16) | (x2 << 8) | x3) & 0x00FFFFFF);
-    if (aux > 0x7FFFFF)
-    {
-      this->resultRaw.ch[i].i = ((~(aux) & 0x00FFFFFF) + 1) * -1;
-    }
-    else
-    {
-      this->resultRaw.ch[i].i = aux;
-    }
+    crcWord = calculateCRC(&x_arr[0], 3, crcWord);
+
+    aux = ((x_arr[0] << 16) | (x_arr[1] << 8) | x_arr[2]);
+    this->resultRaw.ch[i].u_i32 = aux;
   }
+
+  // Read CRC word (3 bytes)
+  for (int i=0; i<3; i++) {
+    x_arr[i] = spi.transfer(0x00);
+  }
+
+  crcWord = calculateCRC(&x_arr[0], 3, crcWord);
 
   delayMicroseconds(1);
   digitalWrite(csPin, HIGH);
 
-  return this->resultRaw;
+  // Returns true when a CRC error occurs
+  return ((bool) crcWord);
 }
 
-bool ADS131M08::do_read_adc(int32_t *adc_raw_array) {
-  this->readAdcRaw();
+int32_t ADS131M08::do_read_adc(uint32_t *adc_raw_array) {
+  bool result = this->readAdcRaw();
   for (int i = 0; i < ADS131M08_NUM_CHANNELS; i++) {
-    adc_raw_array[i] = this->resultRaw.ch[i].i;
+    adc_raw_array[i] = this->resultRaw.ch[i].u_i32;
   }
-  return true;
+  if (result) {
+    return -1;
+  }
+  return 0;
 }
 
+
+// FIXME: Fix this function based on external calculations approach
 float ADS131M08::scaleResult(uint8_t num)
 {
   if (num >= 8)
   {
     return 0.0;
   }
+
+  // aux = (((x_arr[0] << 16) | (x_arr[1] << 8) | x_arr[2]) & 0x00FFFFFF);
+  // convert aux to uint32_t
+  // if (aux > 0x7FFFFF)
+  // {
+  //   this->resultRaw.ch[i].i = ((~(aux) & 0x00FFFFFF) + 1) * -1;
+  // }
+  // else
+  // {
+  //   this->resultRaw.ch[i].i = aux;
+  // }
 
   return this->resultFloat.ch[num].f = (float)(this->resultRaw.ch[num].i * rawToVolts * this->fullScale.ch[num].f);
 }

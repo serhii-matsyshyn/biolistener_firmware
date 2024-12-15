@@ -44,11 +44,8 @@ typedef struct data_packet
     uint32_t n;
 
     uint8_t s_id;
-#if (ADC_USED == ADC_ADS131M08)
-    int32_t data[8];
-#elif (ADC_USED == ADC_AD7771)
+
     uint32_t data[8];
-#endif
 
     uint8_t footer;
 } __attribute__ ((packed)) data_packet;
