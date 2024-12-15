@@ -202,10 +202,13 @@ void processTask(u_int8_t taskCodeId)
                 // {"command": X}
                 detachInterrupt(ESP_GPIO_ANALOG_DRDY);
 
-#if (ADC_USED == ADC_ADS131M08)
+                // erase the message queue
+                xQueueReset(esp32Tcp.messageQueue);
+
                 adc.reset();
                 delay(200);
 
+#if (ADC_USED == ADC_ADS131M08)
                 adc.set_data_rate(500); // Set data rate in Hz
 
                 // Configure the channels
@@ -214,11 +217,27 @@ void processTask(u_int8_t taskCodeId)
                     adc.set_channel_enable(i, true);
                     adc.set_channel_pga(i, 1); // Set PGA Gain as gain number
                 }
+
+                Serial.printf("ID: %d\n", adc.getId());
+                Serial.printf("MODE: %d\n", adc.getModeReg());
+                Serial.printf("CLOCK: %d\n", adc.getClockReg());
+                Serial.printf("CFG: %d\n", adc.getCfgReg());
+                Serial.println("ADS131M08 ready\n");
 #elif (ADC_USED == ADC_AD7771)
-// FIXME: set reset
+                Serial.println("AD7771 ready\n");
+#endif
+            }
+            else if (command == BIOLISTENER_COMMAND_START_SAMPLING)
+            {
+                detachInterrupt(ESP_GPIO_ANALOG_DRDY);
+
+                // erase the message queue
+                xQueueReset(esp32Tcp.messageQueue);
+
+#if (ADC_USED == ADC_AD7771)
                 int32_t ret = adc.configure_sd_data_convertion_mode();
 
-                Serial.println("2 - AD7779 initialized");
+                Serial.println("AD777X configure_sd_data_convertion_mode done.");
                 if (SUCCESS != ret)
                 {
                     delay(50);
@@ -231,26 +250,8 @@ void processTask(u_int8_t taskCodeId)
                     }
                 }
 
+                delay(10);
 #endif
-
-                delay(200);
-
-#if (ADC_USED == ADC_ADS131M08)
-
-                Serial.printf("ID: %d\n", adc.getId());
-                Serial.printf("MODE: %d\n", adc.getModeReg());
-                Serial.printf("CLOCK: %d\n", adc.getClockReg());
-                Serial.printf("CFG: %d\n", adc.getCfgReg());
-                Serial.println("ADS131M08 ready\n");
-
-#elif (ADC_USED == ADC_AD7771)
-                Serial.println("AD7771 ready\n");
-#endif
-            }
-            else if (command == BIOLISTENER_COMMAND_START_SAMPLING)
-            {
-                // erase the message queue
-                xQueueReset(esp32Tcp.messageQueue);
 
                 attachInterrupt(ESP_GPIO_ANALOG_DRDY, InterruptHandlerADC_DRDY, FALLING);
             }
@@ -281,7 +282,18 @@ void launchThreads(void)
         &multicoreDataSamplingInterruptsModule,                                                        /* parameter of the task */
         10,                                                                                            /* priority of the task */
         &multicoreDataSamplingInterruptsModule.quickTasksProcessingThreadHandle,                       /* Task handle to keep track of created task */
-        0                                                                                              /* pin task to core 0 */
+        1                                                                                              /* pin task to core 0 */
+    );
+
+    xTaskCreatePinnedToCore(
+        [](void *param)
+        { static_cast<multicoreDataSamplingInterrupts *>(param)->dogFeeder(param); }, // Task function (lambda)
+        "dogFeeder",                                                                  /* name of task. */
+        1000,                                                                        /* Stack size of task */
+        &multicoreDataSamplingInterruptsModule,                                       /* parameter of the task */
+        1,                                                                           /* priority of the task */
+        NULL,                                                                         /* Task handle to keep track of created task */
+        1                                                                             /* pin task to core 0 */
     );
 
     xTaskCreatePinnedToCore(
@@ -292,7 +304,7 @@ void launchThreads(void)
         &esp32Tcp,                                                           // Task parameter
         1,                                                                   // Priority
         NULL,                                                                // Task handle
-        1                                                                    // Run on core 0 (second core)
+        0                                                                    // Run on core 0 (second core)
     );
 
     xTaskCreatePinnedToCore(
@@ -303,7 +315,7 @@ void launchThreads(void)
         &esp32Tcp,                                                                 // Task parameter
         1,                                                                         // Priority
         NULL,                                                                      // Task handle
-        1                                                                          // Run on core 0 (second core)
+        0                                                                          // Run on core 0 (second core)
     );
 
     xTaskCreatePinnedToCore(
@@ -314,7 +326,7 @@ void launchThreads(void)
         &esp32Tcp,                                                           // Task parameter
         1,                                                                   // Priority
         NULL,                                                                // Task handle
-        1                                                                    // Run on core 0 (second core)
+        0                                                                    // Run on core 0 (second core)
     );
 }
 

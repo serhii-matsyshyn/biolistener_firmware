@@ -177,6 +177,15 @@ bool multicoreDataSamplingInterrupts::manuallyAddTaskIdToTasksQueue(short taskId
     return true;
 }
 
+void multicoreDataSamplingInterrupts::dogFeeder(void *parameter)
+{
+    for (;;)
+    {
+        feedTheDog();
+        delay(100);
+    }
+}
+
 void multicoreDataSamplingInterrupts::quickTasksProcessingThread(void *parameter)
 {
     startMainInterrupt();

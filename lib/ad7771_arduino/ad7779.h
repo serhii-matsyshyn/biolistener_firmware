@@ -52,10 +52,16 @@ public:
     int32_t do_read_adc(uint32_t *adc_raw_array);
     double data_to_millivolts(double ref_mV, uint32_t raw_code, double pga_gain);
 
+    bool reset();
+
 private:
     ad7779_dev ad777x;
     SPIClass spi;
 
     bool all_channels_map = false;
     ChannelMap ch_map;
+
+    uint8_t cs_pin;
+    uint8_t drdy_pin;
+    uint8_t reset_pin;
 };

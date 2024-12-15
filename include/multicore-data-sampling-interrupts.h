@@ -82,6 +82,8 @@ public:
   bool manuallyAddTaskIdToTasksQueue(short taskId);
 
   void quickTasksProcessingThread(void *parameter);
+
+  void dogFeeder(void *parameter);
 };
 
 void processTask(u_int8_t taskCodeId);

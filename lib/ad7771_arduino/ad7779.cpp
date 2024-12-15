@@ -6,6 +6,10 @@ AD7779::~AD7779()
 
 bool AD7779::begin(uint8_t cs_pin, uint8_t drdy_pin, uint8_t reset_pin, SPIClass &spi_ad7779)
 {
+    this->cs_pin = cs_pin;
+    this->drdy_pin = drdy_pin;
+    this->reset_pin = reset_pin;
+
     // DRDY pin
     pinMode(drdy_pin, INPUT);
 
@@ -40,20 +44,40 @@ bool AD7779::configure_sd_data_convertion_mode()
     return ad7779_configure_sd_data_convertion_mode(&ad777x);
 }
 
+bool AD7779::reset()
+{
+    ad777x = ad7779_dev();
+
+    // call begin to re-initialize
+    return begin(cs_pin, drdy_pin, reset_pin, spi);
+}
+
 /*
 AD7779::set_data_rate(uint16_t int_val, uint16_t dec_val)
 As an example, if an output data rate of 2.8 kHz is required, the
 decimation rate equates to
 • High resolution mode = 2048/2.8 = 731.428
 • Low power mode = 512/2.8 = 182.857
+Minimum data rate in High resolution mode is 512 Hz.
+Switch to Low power mode if the data rate lower than 512 Hz is needed.
 */
 bool AD7779::set_data_rate(uint16_t frequency_Hz)
 {
-    // FIXME: not working after streaming is started - reset is needed
     uint16_t int_val = 2048000 / frequency_Hz;
     if (ad777x.pwr_mode == AD7779_LOW_PWR)
     {
         int_val = 512000 / frequency_Hz;
+    }
+
+    if (int_val < 1)
+    {
+        Serial.println("Invalid data rate - negative value");
+        return false;
+    }
+
+    if (int_val > 4000) {
+        Serial.println("Invalid data rate - it may be too low if you are in high resolution mode of ADC. Switch to low power mode. Setting to 512Hz.");
+        int_val = 4000;
     }
    
     return ad7779_set_dec_rate(&ad777x, int_val, 0);
@@ -125,8 +149,8 @@ double AD7779::data_to_millivolts(double ref_mV, uint32_t raw_code, double pga_g
 /* delay.h */
 void mdelay(uint32_t msecs)
 {
-    Serial.print("delay ");
-    Serial.println(msecs);
+    // Serial.print("delay ");
+    // Serial.println(msecs);
     delay(msecs);
 }
 
@@ -158,11 +182,11 @@ int32_t gpio_set_value(struct gpio_desc *desc,
 
     if (desc->number == 0)
     {
-        Serial.println("gpio_set_value: GPIO 0 is not supported");
+        // Serial.println("gpio_set_value: GPIO 0 is not supported");
         return SUCCESS;
     }
 
-    Serial.printf("gpio_set_value %d %d\n", desc->number, value);
+    // Serial.printf("gpio_set_value %d %d\n", desc->number, value);
 
     digitalWrite(desc->number, value);
 
@@ -179,7 +203,7 @@ int32_t gpio_direction_output(struct gpio_desc *desc,
 
     if (desc->number == 0)
     {
-        Serial.println("gpio_direction_output: GPIO 0 is not supported");
+        // Serial.println("gpio_direction_output: GPIO 0 is not supported");
         return SUCCESS;
     }
 

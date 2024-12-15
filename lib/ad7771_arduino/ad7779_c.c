@@ -583,7 +583,7 @@ int32_t ad7779_set_dec_rate(ad7779_dev *dev,
 						AD7779_REG_SRC_IF_LSB,
 						lsb);
 		dev->dec_rate_int = int_val;
-		dev->dec_rate_int = dec_val;
+		dev->dec_rate_dec = dec_val;
 	}
 
 	return ret;
