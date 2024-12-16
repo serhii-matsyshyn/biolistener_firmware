@@ -42,6 +42,8 @@
 #define SUCCESS 0
 #define FAILURE -1
 
+#include "led_indication.h"
+
 #if (ADC_USED == ADC_ADS131M08)
 #include "ADS131M08.h"
 #elif (ADC_USED == ADC_AD7771)

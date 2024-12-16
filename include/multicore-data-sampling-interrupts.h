@@ -1,3 +1,6 @@
+#ifndef MULTICORE_DATA_SAMPLING_INTERRUPTS_H
+#define MULTICORE_DATA_SAMPLING_INTERRUPTS_H
+
 // These define's must be placed at the beginning before #include "_TIMERINTERRUPT_LOGLEVEL_.h"
 // _TIMERINTERRUPT_LOGLEVEL_ from 0 to 4
 // #define _TIMERINTERRUPT_LOGLEVEL_ 4
@@ -78,3 +81,6 @@ public:
 };
 
 void processTask(u_int8_t taskCodeId);
+
+
+#endif // MULTICORE_DATA_SAMPLING_INTERRUPTS_H

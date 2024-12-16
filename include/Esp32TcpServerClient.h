@@ -1,5 +1,5 @@
-#ifndef ESP32_TCP_TIMER_H
-#define ESP32_TCP_TIMER_H
+#ifndef ESP32_TCP_SERVER_CLIENT_H
+#define ESP32_TCP_SERVER_CLIENT_H
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -14,6 +14,7 @@ typedef void (*irqCallback)();        // no arguments
 typedef void (*irqCallbackP)(void *); // one argument
 
 extern QueueHandle_t interruptsTasksQueue;
+extern SingleNeoPixel led;
 
 class Esp32TcpServerCLient
 {
@@ -37,4 +38,4 @@ private:
     static void reconnect();                           // Reconnect if TCP connection is lost
 };
 
-#endif
+#endif // ESP32_TCP_SERVER_CLIENT_H

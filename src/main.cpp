@@ -17,7 +17,7 @@ uint32_t adc_raw_array[AD777x_NUM_CHANNELS] = {0};
 #error "ADC_USED is not defined or is not valid"
 #endif
 
-
+SingleNeoPixel led(ESP_GPIO_WS2812B, 50);
 Esp32TcpServerCLient esp32Tcp;
 multicoreDataSamplingInterrupts multicoreDataSamplingInterruptsModule;
 
@@ -214,11 +214,13 @@ void processTask(u_int8_t taskCodeId)
 
                 delay(10);
 #endif
+                led.setColor(SingleNeoPixel::GREEN);
 
                 attachInterrupt(ESP_GPIO_ANALOG_DRDY, InterruptHandlerADC_DRDY, FALLING);
             }
             else if (command == BIOLISTENER_COMMAND_STOP_SAMPLING)
             {
+                led.setColor(SingleNeoPixel::BLUE);
                 // {"command": X}
                 detachInterrupt(ESP_GPIO_ANALOG_DRDY);
             }
@@ -298,6 +300,9 @@ void setup()
 
     spi.begin(ESP_SCLK, ESP_MISO, ESP_MOSI, ESP_GPIO_CS_ANALOG_1);
 
+    led.begin();
+    led.setColor(SingleNeoPixel::RED);
+
     // WiFi connection
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     WiFi.setSleep(false);
@@ -307,6 +312,7 @@ void setup()
         Serial.println("Connecting to WiFi...");
     }
     Serial.println("Connected to WiFi");
+    led.setColor(SingleNeoPixel::BLUE);
 
     // pinMode(25, OUTPUT);
     // digitalWrite(25, LOW);

@@ -64,8 +64,20 @@ void Esp32TcpServerCLient::tcpConnectionTask(void *parameter)
 {
     while (true)
     {
+        if (WiFi.status() != WL_CONNECTED)
+        {
+            Serial.println("WiFi disconnected");
+            led.setColor(SingleNeoPixel::RED);
+            WiFi.reconnect();
+            while (WiFi.status() != WL_CONNECTED)
+            {
+                delay(500);
+                Serial.println("Connecting to WiFi...");
+            }
+        }
         if (!client.connected())
         {
+            led.setColor(SingleNeoPixel::BLUE);
             reconnect();
         }
         delay(1000);
