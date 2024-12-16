@@ -1,22 +1,10 @@
 #include "Esp32TcpServerClient.h"
 #include <SPI.h>
-
-#if (ADC_USED == ADC_ADS131M08)
-#include "ADS131M08.h"
-#elif (ADC_USED == ADC_AD7771)
-// #include "ad7779.h"
-#else
-#error "ADC_USED is not defined or is not valid"
-#endif
-
 #include "config_esp32_biosignals.h"
 
 // To be included only in main(), .ino with setup() to avoid `Multiple Definitions` Linker Error
 #include <ESP32TimerInterrupt.h> //https://github.com/khoih-prog/ESP32TimerInterrupt
 #include "multicore-data-sampling-interrupts.h"
-
-#include <WiFiUdp.h>
-WiFiUDP udpClient;
 
 SPIClass spi(HSPI);
 #if (ADC_USED == ADC_ADS131M08)
@@ -36,7 +24,7 @@ multicoreDataSamplingInterrupts multicoreDataSamplingInterruptsModule;
 irqUniversalTaskStruct irqTasksMap[] =
     {
         {TaskId_SendDebugMessage, "setInterval", addTaskIdToQueueUniversal, 50L, -1, false, false, false}, // SendDebugMessage
-        {TaskId_SendBiosignalData, "setInterval", addTaskIdToQueueUniversal, 2L, -1, false, false, false}, // SendBiosignalData
+        {TaskId_SendBiosignalData, "setInterval", addTaskIdToQueueUniversal, 2L, -1, false, false, false}, // SendBiosignalData without interrupt data ready
 };
 
 void processTask(u_int8_t taskCodeId)
@@ -44,47 +32,21 @@ void processTask(u_int8_t taskCodeId)
     static size_t counter = 0;
     if (taskCodeId == TaskId_SendDebugMessage)
     {
-
-        // {
-        // "ts": 111111111, // timestamp in milliseconds
-        // "n": 0, // number of the message
-        // "type": 1, // type 1 - data from sensor
-        // "s_id": 0, // sensor id; 0 - ADS131M08, 1 - AD7771
-        // "data": [111, 222, 333, 444, 555, 666, 777, 888]
-        // }
-
         static size_t counter = 0;
 
-        StaticJsonDocument<200> doc;
-        doc["ts"] = millis();
-        doc["type"] = 1;
-        doc["n"] = counter;
-        doc["s_id"] = 0;
-        JsonArray data = doc.createNestedArray("data");
-        uint16_t data_arr[8] = {1, 2, 3, 4, 5, 6, 7, 8};
-
-        for (int i = 0; i < 8; i++)
-        {
-            data.add(data_arr[i]);
-        }
-
+        data_packet listener_packet = {BIOLISTENER_DATA_PACKET_HEADER, millis(), BIOLISTENER_DATA_PACKET_DEBUG, counter, ADC_USED, {999, 999, 999, 999, 999, 999, 999, 999}, BIOLISTENER_DATA_PACKET_FOOTER};
         counter++;
 
-        char buffer[256];
-        serializeJson(doc, buffer);
-        // serializeMsgPack(doc, buffer);
-        strcat(buffer, "\n"); // add /n to the end of the message
-
-        xQueueSend(esp32Tcp.messageQueue, buffer, 0);
+        xQueueSend(esp32Tcp.messageQueue, &listener_packet, 0);
     }
     else if (taskCodeId == TaskId_SendBiosignalData)
     {
         static size_t last_millis = millis();
         static data_packet listener_packet;
         static size_t counter = 0;
-        int32_t ret = adc.do_read_adc(adc_raw_array);
+        bool ret = adc.do_read_adc(adc_raw_array);
 
-        if (ret != 0)
+        if (ret != SUCCESS)
         {
             // Serial.printf("Error reading ADC: %d\n", ret);
             return;
@@ -142,7 +104,7 @@ void processTask(u_int8_t taskCodeId)
         // }
 
         counter++;
-        listener_packet = {0xA0, millis(), 1, counter, ADC_USED, {adc_raw_array[0], adc_raw_array[1], adc_raw_array[2], adc_raw_array[3], adc_raw_array[4], adc_raw_array[5], adc_raw_array[6], adc_raw_array[7]}, 0xC0};
+        listener_packet = {BIOLISTENER_DATA_PACKET_HEADER, millis(), BIOLISTENER_DATA_PACKET_BIOSIGNALS, counter, ADC_USED, {adc_raw_array[0], adc_raw_array[1], adc_raw_array[2], adc_raw_array[3], adc_raw_array[4], adc_raw_array[5], adc_raw_array[6], adc_raw_array[7]}, BIOLISTENER_DATA_PACKET_FOOTER};
 
         if (millis() - last_millis >= 1000)
         {
@@ -235,7 +197,7 @@ void processTask(u_int8_t taskCodeId)
                 xQueueReset(esp32Tcp.messageQueue);
 
 #if (ADC_USED == ADC_AD7771)
-                int32_t ret = adc.configure_sd_data_convertion_mode();
+                bool ret = adc.configure_sd_data_convertion_mode();
 
                 Serial.println("AD777X configure_sd_data_convertion_mode done.");
                 if (SUCCESS != ret)

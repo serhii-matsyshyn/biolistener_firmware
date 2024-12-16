@@ -801,15 +801,12 @@ bool ADS131M08::readAdcRaw(void)
   return ((bool) crcWord);
 }
 
-int32_t ADS131M08::do_read_adc(uint32_t *adc_raw_array) {
+bool ADS131M08::do_read_adc(uint32_t *adc_raw_array) {
   bool result = this->readAdcRaw();
   for (int i = 0; i < ADS131M08_NUM_CHANNELS; i++) {
     adc_raw_array[i] = this->resultRaw.ch[i].u_i32;
   }
-  if (result) {
-    return -1;
-  }
-  return 0;
+  return result;
 }
 
 

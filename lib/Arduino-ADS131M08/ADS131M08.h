@@ -331,10 +331,6 @@ public:
   bool setDrdyFormat(uint8_t drdyFormat);
   bool setDrdyStateWhenUnavailable(uint8_t drdyState);
   bool setPowerMode(uint8_t powerMode);
-  bool set_channel_enable(uint8_t channel, uint16_t enable);
-  bool setChannelPGA(uint8_t channel, ADS131M08_PgaGain pga);
-  bool setChannelPGA(uint8_t channel, uint16_t pga);
-  bool set_channel_pga(uint8_t channel, uint16_t gain);
   ADS131M08_PgaGain getChannelPGA(uint8_t channel);
   void setGlobalChop(uint16_t global_chop);
   void setGlobalChopDelay(uint16_t delay);
@@ -342,8 +338,6 @@ public:
   bool setAllInputChannelSelection(uint8_t input);
   bool setChannelOffsetCalibration(uint8_t channel, int32_t offset);
   bool setChannelGainCalibration(uint8_t channel, uint32_t gain);
-  bool setOsr(uint16_t osr);
-  bool set_data_rate(uint16_t frequency_Hz);
   void setFullScale(uint8_t channel, float scale);
   float getFullScale(uint8_t channel);
   void reset();
@@ -351,7 +345,11 @@ public:
   uint16_t getModeReg();
   uint16_t getClockReg();
   uint16_t getCfgReg();
-  int32_t do_read_adc(uint32_t *adc_raw_array);
+
+  bool set_channel_enable(uint8_t channel, uint16_t enable);
+  bool set_channel_pga(uint8_t channel, uint16_t gain);
+  bool do_read_adc(uint32_t *adc_raw_array);
+  bool set_data_rate(uint16_t frequency_Hz);
 
 private:
   uint8_t csPin;
@@ -363,6 +361,11 @@ private:
   AdcOutput resultRaw;
   AdcOutput resultFloat;
   SPIClass spi;
+
+  // Since these functions take only sensor specific parameters, they are private to avoid confusion
+  bool setChannelPGA(uint8_t channel, ADS131M08_PgaGain pga);
+  bool setChannelPGA(uint8_t channel, uint16_t pga);
+  bool setOsr(uint16_t osr);
 
   uint8_t writeRegister(uint8_t address, uint16_t value);
   void writeRegisterMasked(uint8_t address, uint16_t value, uint16_t mask);

@@ -49,7 +49,7 @@ public:
     bool set_channel_enable(uint8_t ch, uint8_t enable);
     bool set_channel_pga(uint8_t ch, uint8_t gain);
     bool spi_int_reg_read(uint8_t reg_addr, uint8_t *reg_data);
-    int32_t do_read_adc(uint32_t *adc_raw_array);
+    bool do_read_adc(uint32_t *adc_raw_array);
     double data_to_millivolts(double ref_mV, uint32_t raw_code, double pga_gain);
 
     bool reset();

@@ -113,7 +113,7 @@ bool AD7779::spi_int_reg_read(uint8_t reg_addr, uint8_t *reg_data)
     return ad7779_spi_int_reg_read(&ad777x, reg_addr, reg_data);
 }
 
-int32_t AD7779::do_read_adc(uint32_t *adc_raw_array)
+bool AD7779::do_read_adc(uint32_t *adc_raw_array)
 {
     uint32_t adc_raw_array_in[AD777x_NUM_CHANNELS] = {0};
 

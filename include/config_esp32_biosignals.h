@@ -28,10 +28,28 @@
 #define BIOLISTENER_COMMAND_START_SAMPLING 5
 #define BIOLISTENER_COMMAND_STOP_SAMPLING 6
 
+#define BIOLISTENER_DATA_PACKET_DEBUG 0
+#define BIOLISTENER_DATA_PACKET_BIOSIGNALS 1
+
+#define BIOLISTENER_DATA_PACKET_HEADER 0xA0
+#define BIOLISTENER_DATA_PACKET_FOOTER 0xC0
+
 #define ADC_ADS131M08 0
 #define ADC_AD7771 1
 
 #define COMBINED_DATA_PACKET_NUM 50
+
+#define SUCCESS 0
+#define FAILURE -1
+
+#if (ADC_USED == ADC_ADS131M08)
+#include "ADS131M08.h"
+#elif (ADC_USED == ADC_AD7771)
+#include "ad7779.h"
+#else
+#error "ADC_USED is not defined or is not valid"
+#endif
+
 
 typedef struct data_packet
 {
