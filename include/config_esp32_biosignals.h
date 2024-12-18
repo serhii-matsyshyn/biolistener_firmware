@@ -19,6 +19,8 @@
 #define TaskId_SendDebugMessage 0
 #define TaskId_SendBiosignalData 1
 #define TaskId_ProcessCommand 2
+#define TaskId_ReadBatteryVoltage 3
+#define TaskId_ReadIMUData 4
 
 #define BIOLISTENER_COMMAND_UNDEFINED 0
 #define BIOLISTENER_COMMAND_SET_ADC_DATA_RATE 1
@@ -30,6 +32,7 @@
 
 #define BIOLISTENER_DATA_PACKET_DEBUG 0
 #define BIOLISTENER_DATA_PACKET_BIOSIGNALS 1
+#define BIOLISTENER_DATA_PACKET_IMU 2
 
 #define BIOLISTENER_DATA_PACKET_HEADER 0xA0
 #define BIOLISTENER_DATA_PACKET_FOOTER 0xC0
@@ -38,6 +41,9 @@
 #define ADC_AD7771 1
 
 #define COMBINED_DATA_PACKET_NUM 50
+
+#define FLOAT_TO_UINT32(x) (*((uint32_t *)&(x)))
+#define UINT32_TO_FLOAT(x) (*((float *)&(x)))
 
 #define SUCCESS 0
 #define FAILURE -1

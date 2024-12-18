@@ -6,6 +6,10 @@
 #include <ESP32TimerInterrupt.h> //https://github.com/khoih-prog/ESP32TimerInterrupt
 #include "multicore-data-sampling-interrupts.h"
 
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
+#include <Wire.h>
+
 SPIClass spi(HSPI);
 #if (ADC_USED == ADC_ADS131M08)
 ADS131M08 adc;
@@ -20,11 +24,19 @@ uint32_t adc_raw_array[AD777x_NUM_CHANNELS] = {0};
 SingleNeoPixel led(ESP_GPIO_WS2812B, 50);
 Esp32TcpServerCLient esp32Tcp;
 multicoreDataSamplingInterrupts multicoreDataSamplingInterruptsModule;
+Adafruit_MPU6050 mpu;
+
+float batteryVoltage = 999.0;
 
 irqUniversalTaskStruct irqTasksMap[] =
     {
         {TaskId_SendDebugMessage, "setInterval", addTaskIdToQueueUniversal, 50L, -1, false, false, false}, // SendDebugMessage
         {TaskId_SendBiosignalData, "setInterval", addTaskIdToQueueUniversal, 2L, -1, false, false, false}, // SendBiosignalData without interrupt data ready
+        {TaskId_ProcessCommand, "setInterval", addTaskIdToQueueUniversal, 100L, -1, false, false, false}, // ProcessCommand
+        {TaskId_ReadBatteryVoltage, "setInterval", addTaskIdToQueueUniversal, 2000L, -1, false, false, true}, // ReadBatteryVoltage
+#if (!IMU_DISABLE)
+        {TaskId_ReadIMUData, "setInterval", addTaskIdToQueueUniversal, 20L, -1, false, false, false}, // ReadIMUData
+#endif
 };
 
 void processTask(u_int8_t taskCodeId)
@@ -216,6 +228,8 @@ void processTask(u_int8_t taskCodeId)
 #endif
                 led.setColor(SingleNeoPixel::GREEN);
 
+                multicoreDataSamplingInterruptsModule.runTask(TaskId_ReadIMUData);
+
                 attachInterrupt(ESP_GPIO_ANALOG_DRDY, InterruptHandlerADC_DRDY, FALLING);
             }
             else if (command == BIOLISTENER_COMMAND_STOP_SAMPLING)
@@ -223,11 +237,57 @@ void processTask(u_int8_t taskCodeId)
                 led.setColor(SingleNeoPixel::BLUE);
                 // {"command": X}
                 detachInterrupt(ESP_GPIO_ANALOG_DRDY);
+                multicoreDataSamplingInterruptsModule.deleteTaskByForce(TaskId_ReadIMUData);
             }
             else
             {
                 Serial.println("Unknown TaskId_ProcessCommand");
             }
+        }
+    }
+    else if (taskCodeId == TaskId_ReadBatteryVoltage)
+    {
+        // Serial.println("TaskId_ReadBatteryVoltage");
+        uint16_t analogReadVal = analogRead(ESP_BAT_VOLTAGE);
+        batteryVoltage = (analogReadVal * 4.73) / 4096.0; // 4.73 = 1.1 * (330.0 + 100.0) / 100.0;
+        // Serial.printf("Battery voltage: %f\n", batteryVoltage);
+
+        if (batteryVoltage < 3.3)
+        {
+            led.setColor(SingleNeoPixel::YELLOW);
+        }
+    } 
+    else if (taskCodeId == TaskId_ReadIMUData)
+    {
+        // Serial.println("TaskId_ReadIMUData");
+
+        static size_t counter = 0;
+
+        sensors_event_t a, g, temp;
+        mpu.getEvent(&a, &g, &temp);
+
+        // Serial.printf("Accel X: %.2f m/s^2\t", a.acceleration.x);
+        // Serial.printf("Y: %.2f m/s^2\t", a.acceleration.y);
+        // Serial.printf("Z: %.2f m/s^2\n", a.acceleration.z);
+
+        // Serial.printf("Gyro X: %.2f rad/s\t", g.gyro.x);
+        // Serial.printf("Y: %.2f rad/s\t", g.gyro.y);
+        // Serial.printf("Z: %.2f rad/s\n", g.gyro.z);
+
+        // Serial.printf("Temp: %.2f C\n", temp.temperature);
+
+        data_packet listener_packet = {BIOLISTENER_DATA_PACKET_HEADER, millis(), BIOLISTENER_DATA_PACKET_IMU, counter, ADC_USED,
+        {
+            FLOAT_TO_UINT32(a.acceleration.x), FLOAT_TO_UINT32(a.acceleration.y), FLOAT_TO_UINT32(a.acceleration.z),
+            FLOAT_TO_UINT32(g.gyro.x), FLOAT_TO_UINT32(g.gyro.y), FLOAT_TO_UINT32(g.gyro.z),
+            FLOAT_TO_UINT32(temp.temperature), FLOAT_TO_UINT32(batteryVoltage)
+        }, BIOLISTENER_DATA_PACKET_FOOTER};
+        counter++;
+
+        if (xQueueSend(esp32Tcp.messageQueue, &listener_packet, 0) != pdPASS)
+        {
+            // Failed to post the message
+            Serial.println("Failed to post the message - Queue is full");
         }
     }
     else
@@ -298,10 +358,29 @@ void setup()
 {
     Serial.begin(1000000);
 
+    Wire.begin();
+    Wire.setClock(400000L);
+
     spi.begin(ESP_SCLK, ESP_MISO, ESP_MOSI, ESP_GPIO_CS_ANALOG_1);
 
     led.begin();
     led.setColor(SingleNeoPixel::RED);
+
+    analogSetPinAttenuation(ESP_BAT_VOLTAGE, ADC_0db);
+    analogSetWidth(12);
+
+#if (!IMU_DISABLE)
+    if (!mpu.begin()) {
+        Serial.println("Failed to find MPU6050 chip");
+        while (1) {
+        delay(10);
+        }
+    }
+
+    mpu.setAccelerometerRange(MPU6050_RANGE_16_G);
+    mpu.setGyroRange(MPU6050_RANGE_250_DEG);
+    mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+#endif
 
     // WiFi connection
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
