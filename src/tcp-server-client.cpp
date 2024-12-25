@@ -9,7 +9,7 @@ Esp32TcpServerCLient::Esp32TcpServerCLient() {}
 
 void Esp32TcpServerCLient::begin()
 {
-    messageQueue = xQueueCreate(1000, sizeof(data_packet));
+    messageQueue = xQueueCreate(2500, sizeof(data_packet));
     commandQueue = xQueueCreate(20, 256);
 }
 

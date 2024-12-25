@@ -34,9 +34,7 @@ irqUniversalTaskStruct irqTasksMap[] =
         {TaskId_SendBiosignalData, "setInterval", addTaskIdToQueueUniversal, 2L, -1, false, false, false}, // SendBiosignalData without interrupt data ready
         {TaskId_ProcessCommand, "setInterval", addTaskIdToQueueUniversal, 100L, -1, false, false, false}, // ProcessCommand
         {TaskId_ReadBatteryVoltage, "setInterval", addTaskIdToQueueUniversal, 2000L, -1, false, false, true}, // ReadBatteryVoltage
-#if (!IMU_DISABLE)
         {TaskId_ReadIMUData, "setInterval", addTaskIdToQueueUniversal, 20L, -1, false, false, false}, // ReadIMUData
-#endif
 };
 
 void processTask(u_int8_t taskCodeId)
@@ -118,12 +116,18 @@ void processTask(u_int8_t taskCodeId)
         counter++;
         listener_packet = {BIOLISTENER_DATA_PACKET_HEADER, millis(), BIOLISTENER_DATA_PACKET_BIOSIGNALS, counter, ADC_USED, {adc_raw_array[0], adc_raw_array[1], adc_raw_array[2], adc_raw_array[3], adc_raw_array[4], adc_raw_array[5], adc_raw_array[6], adc_raw_array[7]}, BIOLISTENER_DATA_PACKET_FOOTER};
 
-        if (millis() - last_millis >= 1000)
-        {
-            // Serial.printf("FPS: %f\n", (float)counter / ((millis() - last_millis) / 1000));
-            counter = 0;
-            last_millis = millis();
-        }
+        // if (millis() - last_millis >= 3000)
+        // {
+        //     // Serial.printf("FPS: %f\n", (float)counter / ((millis() - last_millis) / 1000));
+        //     // counter = 0;
+        //     last_millis = millis();
+
+        //     // print free heap (RAM) and frequency of the core
+        //     Serial.printf("Free heap: %d\n", ESP.getFreeHeap());
+        //     Serial.printf("Core frequency: %d\n", ESP.getCpuFreqMHz());
+
+
+        // }
 
         if (xQueueSend(esp32Tcp.messageQueue, &listener_packet, 0) != pdPASS)
         {
@@ -264,7 +268,9 @@ void processTask(u_int8_t taskCodeId)
         static size_t counter = 0;
 
         sensors_event_t a, g, temp;
+#if (!IMU_DISABLE)
         mpu.getEvent(&a, &g, &temp);
+#endif
 
         // Serial.printf("Accel X: %.2f m/s^2\t", a.acceleration.x);
         // Serial.printf("Y: %.2f m/s^2\t", a.acceleration.y);
