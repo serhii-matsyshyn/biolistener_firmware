@@ -2,6 +2,8 @@
 
 #include "soc/timer_group_struct.h"
 #include "soc/timer_group_reg.h"
+
+// feedTheDog source: https://forum.arduino.cc/t/esp32-a-better-way-than-vtaskdelay-to-get-around-watchdog-crash/596889/13
 void feedTheDog()
 {
     // feed dog 0
@@ -20,7 +22,7 @@ QueueHandle_t interruptsTasksQueue;
 TaskHandle_t multicoreDataSamplingInterrupts::quickTasksProcessingThreadHandle;
 
 // CAN BE USED IN ISR ONLY!!! DO NOT USE!!!
-// Note from repo khoih-prog/ESP32TimerInterrupt:
+// Note from repo https://github.com/khoih-prog/ESP32TimerInterrupt:
 // With core v2.0.0+, you can't use Serial.print/println in ISR or crash.
 // and you can't use float calculation inside ISR
 // Only OK in core v1.0.6-
@@ -31,7 +33,7 @@ bool IRAM_ATTR ITimerHandler0(void *timerNo)
 }
 
 // CAN BE USED IN ISR ONLY!!! DO NOT USE!!!
-// Note from repo khoih-prog/ESP32TimerInterrupt:
+// Note from repo https://github.com/khoih-prog/ESP32TimerInterrupt:
 // In ESP32, avoid doing something fancy in ISR, for example complex Serial.print with String() argument
 // The pure simple Serial.prints here are just for demonstration and testing. Must be eliminate in working environment
 // Or you can get this run-time error / crash
