@@ -63,79 +63,14 @@ void processTask(u_int8_t taskCodeId)
         }
         // Serial.printf("%d,%d,%d,%d,%d,%d,%d,%d\n", adc_raw_array[0], adc_raw_array[1], adc_raw_array[2], adc_raw_array[3], adc_raw_array[4], adc_raw_array[5], adc_raw_array[6], adc_raw_array[7]);
 
-        // // Debugging errors on SPI line
-        // double ref_mV = 2500.0; // 2.5V reference voltage
-        // double ref_microV = ref_mV * 1000.0;
-        // double pga_gain = 8.0;  // PGA gain of 1
-        // double result_mV[AD777x_NUM_CHANNELS];
-        // for (int i = 0; i < AD777x_NUM_CHANNELS; i++)
-        // {
-        //     result_mV[i] = adc.data_to_millivolts(ref_microV, adc_raw_array[i], pga_gain);
-        // }
-
-        // bool send = true;
-        // bool same = true;
-        // uint32_t first = adc_raw_array[0];
-        // for (int i = 0; i < 7; i++)
-        // {
-        //     if (result_mV[i] < -500 || result_mV[i] > 500 ) // & adc_raw_array[i] != first)
-        //     {
-        //         send = false;
-        //         break;
-        //     }
-        // }
-
-        // for (int i = 0; i < 8; i++)
-        // {
-        //     if (adc_raw_array[i] != first)
-        //     {
-        //         same = false;
-        //         break;
-        //     }
-        // }
-
-        // if (!send) {
-        //     digitalWrite(25, HIGH);
-        //     Serial.printf("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\r\n",
-        //           result_mV[0],
-        //           result_mV[1],
-        //           result_mV[2],
-        //           result_mV[3],
-        //           result_mV[4],
-        //           result_mV[5],
-        //           result_mV[6],
-        //           result_mV[7]);
-            
-        // }
-
-        // if (!send || same)
-        // {
-        //     return;
-        // }
-
         counter++;
         listener_packet = {BIOLISTENER_DATA_PACKET_HEADER, millis(), BIOLISTENER_DATA_PACKET_BIOSIGNALS, counter, ADC_USED, {adc_raw_array[0], adc_raw_array[1], adc_raw_array[2], adc_raw_array[3], adc_raw_array[4], adc_raw_array[5], adc_raw_array[6], adc_raw_array[7]}, BIOLISTENER_DATA_PACKET_FOOTER};
-
-        // if (millis() - last_millis >= 3000)
-        // {
-        //     // Serial.printf("FPS: %f\n", (float)counter / ((millis() - last_millis) / 1000));
-        //     // counter = 0;
-        //     last_millis = millis();
-
-        //     // print free heap (RAM) and frequency of the core
-        //     Serial.printf("Free heap: %d\n", ESP.getFreeHeap());
-        //     Serial.printf("Core frequency: %d\n", ESP.getCpuFreqMHz());
-
-
-        // }
 
         if (xQueueSend(esp32Tcp.messageQueue, &listener_packet, 0) != pdPASS)
         {
             // Failed to post the message
             // Serial.println("Failed to post the message - Queue is full");
         }
-
-        // digitalWrite(25, LOW);
     }
     else if (taskCodeId == TaskId_ProcessCommand)
     {
@@ -271,17 +206,6 @@ void processTask(u_int8_t taskCodeId)
 #if (!IMU_DISABLE)
         mpu.getEvent(&a, &g, &temp);
 #endif
-
-        // Serial.printf("Accel X: %.2f m/s^2\t", a.acceleration.x);
-        // Serial.printf("Y: %.2f m/s^2\t", a.acceleration.y);
-        // Serial.printf("Z: %.2f m/s^2\n", a.acceleration.z);
-
-        // Serial.printf("Gyro X: %.2f rad/s\t", g.gyro.x);
-        // Serial.printf("Y: %.2f rad/s\t", g.gyro.y);
-        // Serial.printf("Z: %.2f rad/s\n", g.gyro.z);
-
-        // Serial.printf("Temp: %.2f C\n", temp.temperature);
-
         data_packet listener_packet = {BIOLISTENER_DATA_PACKET_HEADER, millis(), BIOLISTENER_DATA_PACKET_IMU, counter, ADC_USED,
         {
             FLOAT_TO_UINT32(a.acceleration.x), FLOAT_TO_UINT32(a.acceleration.y), FLOAT_TO_UINT32(a.acceleration.z),
@@ -399,10 +323,6 @@ void setup()
     Serial.println("Connected to WiFi");
     led.setColor(SingleNeoPixel::BLUE);
 
-    // pinMode(25, OUTPUT);
-    // digitalWrite(25, LOW);
-
-    // Print local IP address
     Serial.print("Local IP address: ");
     Serial.println(WiFi.localIP());
 
