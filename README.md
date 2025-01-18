@@ -1,3 +1,5 @@
+![BioListener Logo](data/images/BioListener_Logo_1920х200.jpg "BioListener Logo")
+
 # BioListener Firmware
 
 **BioListener** is based on the **ESP32 D1 MINI** module (ESP-WROOM-32).
