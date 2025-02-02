@@ -58,6 +58,7 @@ void Esp32TcpServerCLient::tcpSendTask(void *parameter)
             messageNum = 0;
         }
     }
+    vTaskDelete(NULL);
 }
 
 void Esp32TcpServerCLient::tcpConnectionTask(void *parameter)
@@ -82,15 +83,17 @@ void Esp32TcpServerCLient::tcpConnectionTask(void *parameter)
         }
         delay(1000);
     }
+    vTaskDelete(NULL);
 }
 
 void Esp32TcpServerCLient::reconnect()
 {
-    while (!client.connect(SERVER_IP, SERVER_PORT))
+    while (!client.connect(config_manager.param_server_ip, config_manager.param_server_port))
     {
         Serial.println("Reconnecting to server...");
         delay(1000);
     }
+    config_manager.stopConfigPortalTask();  // Stop config portal as soon as connection to server is established
     Serial.println("Connected to server");
     client.setNoDelay(false);
 }
@@ -107,4 +110,5 @@ void Esp32TcpServerCLient::receiveTask(void *parameter)
         }
         delay(10);
     }
+    vTaskDelete(NULL);
 }

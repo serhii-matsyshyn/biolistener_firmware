@@ -25,6 +25,7 @@ SingleNeoPixel led(ESP_GPIO_WS2812B, 50);
 Esp32TcpServerCLient esp32Tcp;
 multicoreDataSamplingInterrupts multicoreDataSamplingInterruptsModule;
 Adafruit_MPU6050 mpu;
+ConfigManager config_manager;
 
 float batteryVoltage = 999.0;
 
@@ -231,23 +232,23 @@ void launchThreads(void)
     xTaskCreatePinnedToCore(
         [](void *param)
         { static_cast<multicoreDataSamplingInterrupts *>(param)->quickTasksProcessingThread(param); }, // Task function (lambda)
-        "quickTasksProcessingThread",                                                                  /* name of task. */
-        10000,                                                                                         /* Stack size of task */
-        &multicoreDataSamplingInterruptsModule,                                                        /* parameter of the task */
-        10,                                                                                            /* priority of the task */
-        &multicoreDataSamplingInterruptsModule.quickTasksProcessingThreadHandle,                       /* Task handle to keep track of created task */
-        1                                                                                              /* pin task to core 0 */
+        "quickTasksProcessingThread",                                                                  // Name of the task
+        10000,                                                                                         // Stack size
+        &multicoreDataSamplingInterruptsModule,                                                        // Task parameter
+        10,                                                                                            // Priority
+        &multicoreDataSamplingInterruptsModule.quickTasksProcessingThreadHandle,                       // Task handle
+        1                                                                                              // Run on core
     );
 
     xTaskCreatePinnedToCore(
         [](void *param)
         { static_cast<multicoreDataSamplingInterrupts *>(param)->dogFeeder(param); }, // Task function (lambda)
-        "dogFeeder",                                                                  /* name of task. */
-        1000,                                                                        /* Stack size of task */
-        &multicoreDataSamplingInterruptsModule,                                       /* parameter of the task */
-        1,                                                                           /* priority of the task */
-        NULL,                                                                         /* Task handle to keep track of created task */
-        1                                                                             /* pin task to core 0 */
+        "dogFeeder",                                                                  // Name of the task
+        1000,                                                                         // Stack size
+        &multicoreDataSamplingInterruptsModule,                                       // Task parameter
+        1,                                                                            // Priority
+        NULL,                                                                         // Task handle
+        1                                                                             // Run on core
     );
 
     xTaskCreatePinnedToCore(
@@ -258,7 +259,7 @@ void launchThreads(void)
         &esp32Tcp,                                                           // Task parameter
         1,                                                                   // Priority
         NULL,                                                                // Task handle
-        0                                                                    // Run on core 0 (second core)
+        0                                                                    // Run on core
     );
 
     xTaskCreatePinnedToCore(
@@ -269,7 +270,7 @@ void launchThreads(void)
         &esp32Tcp,                                                                 // Task parameter
         1,                                                                         // Priority
         NULL,                                                                      // Task handle
-        0                                                                          // Run on core 0 (second core)
+        0                                                                          // Run on core
     );
 
     xTaskCreatePinnedToCore(
@@ -280,7 +281,18 @@ void launchThreads(void)
         &esp32Tcp,                                                           // Task parameter
         1,                                                                   // Priority
         NULL,                                                                // Task handle
-        0                                                                    // Run on core 0 (second core)
+        0                                                                    // Run on core
+    );
+
+    xTaskCreatePinnedToCore(
+        [](void *param)
+        { static_cast<ConfigManager *>(param)->configPortalTask(param); },   // Task function (lambda)
+        "tcpSendTask",                                                       // Name of the task
+        4096,                                                                // Stack size
+        &config_manager,                                                     // Task parameter
+        1,                                                                   // Priority
+        NULL,                                                                // Task handle
+        0                                                                    // Run on core
     );
 }
 
@@ -313,7 +325,9 @@ void setup()
 #endif
 
     // WiFi connection
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    // WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    config_manager.begin();
+
     WiFi.setSleep(false);
     while (WiFi.status() != WL_CONNECTED)
     {

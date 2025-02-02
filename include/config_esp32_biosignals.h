@@ -49,6 +49,7 @@
 #define FAILURE -1
 
 #include "led_indication.h"
+#include "config_manager.h"
 
 #if (ADC_USED == ADC_ADS131M08)
 #include "ADS131M08.h"

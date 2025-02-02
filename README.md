@@ -31,11 +31,15 @@ The following features are planned for future updates:
 - Use `platformio.ini` to configure the project settings and set build flags (specified below):
   - **ADC_USED**:  0: ADC_ADS131M08, 1: ADC_AD7771
   - **IMU_DISABLE**: 0: IMU_ENABLE, 1: IMU_DISABLE
-  - **SERVER_IP**: Set BioListener server IP address for BrainFlow server.
-  - **WIFI_SSID**: Set system variable WIFI_SSID to your WiFi SSID for secure configuration.
-  - **WIFI_PASSWORD**: Set WIFI_PASSWORD to your WiFi password for secure configuration.
 - Build the project using the **PlatformIO** extension in **Visual Studio Code**.
 - Upload the firmware to the **ESP32 D1 MINI** module using the **PlatformIO** extension in **Visual Studio Code**.
+
+## Usage
+For the first run, the **ESP32 D1 MINI** module will create a WiFi access point named `BioListener_******`. Connect to this access point and open the IP address `192.168.4.1` in your browser. You will be redirected to the configuration page, where you can set up the WiFi connection and BrainFlow server settings (IP address and port).  
+
+After the configuration is complete, the **ESP32 D1 MINI** module will connect to the specified WiFi network.  
+
+After every device start, you have ability to connect to configuration page available at `BioListener_******` WiFi access point. It will be available for 2 minutes after device start or until BrainFlow server connection is established.
 
 ## License
 
