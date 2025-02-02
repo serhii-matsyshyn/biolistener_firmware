@@ -1,0 +1,38 @@
+name: PlatformIO CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        flag_value: 
+          - { value: 0, name: ADC_ADS131M08 }
+          - { value: 1, name: ADC_AD7771 }
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Build PlatformIO Project
+        env:
+          PLATFORMIO_BUILD_FLAGS: -D ADC_USED=${{matrix.flag_value}} -D IMU_DISABLE={{matrix.flag_value}}
+        run: pio run
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-BioListener-${{ matrix.name }}
+          path: |
+            .pio/build/**/firmware.bin
