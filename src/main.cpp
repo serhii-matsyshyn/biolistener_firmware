@@ -204,7 +204,7 @@ void processTask(u_int8_t taskCodeId)
         static size_t counter = 0;
 
         sensors_event_t a, g, temp;
-#if (!IMU_DISABLE)
+#if IMU_DISABLE == 0
         mpu.getEvent(&a, &g, &temp);
 #endif
         data_packet listener_packet = {BIOLISTENER_DATA_PACKET_HEADER, millis(), BIOLISTENER_DATA_PACKET_IMU, counter, ADC_USED,
@@ -311,7 +311,9 @@ void setup()
     analogSetPinAttenuation(ESP_BAT_VOLTAGE, ADC_0db);
     analogSetWidth(12);
 
-#if (!IMU_DISABLE)
+#if IMU_DISABLE == 0
+#pragma message("IMU enabled!")
+
     if (!mpu.begin()) {
         Serial.println("Failed to find MPU6050 chip");
         while (1) {
