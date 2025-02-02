@@ -27,12 +27,12 @@ jobs:
 
       - name: Build PlatformIO Project
         env:
-          PLATFORMIO_BUILD_FLAGS: -D ADC_USED=${{matrix.flag_value}} -D IMU_DISABLE={{matrix.flag_value}}
+          PLATFORMIO_BUILD_FLAGS: -D ADC_USED=${{matrix.flag_value.value}} -D IMU_DISABLE={{matrix.flag_value.value}}
         run: pio run
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: firmware-BioListener-${{ matrix.name }}
+          name: firmware-BioListener-${{ matrix.flag_value.name }}
           path: |
             .pio/build/**/firmware.bin
