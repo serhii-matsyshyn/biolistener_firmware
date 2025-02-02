@@ -27,7 +27,7 @@ jobs:
 
       - name: Build PlatformIO Project With ADC_USED And IMU_DISABLE Flag ${{matrix.flag_value.value}}
         env:
-          PLATFORMIO_BUILD_FLAGS: -D ADC_USED=${{matrix.flag_value.value}} -D IMU_DISABLE=${{matrix.flag_value.value}}
+          PLATFORMIO_BUILD_FLAGS: -D ADC_USED=${{matrix.flag_value.value}} -D IMU_DISABLE=${{matrix.flag_value.value}} -Wno-macro-redefined
         run: pio run
 
       - name: Upload Build Artifacts
