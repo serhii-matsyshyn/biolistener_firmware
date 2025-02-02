@@ -1,4 +1,4 @@
-#include "multicore-data-sampling-interrupts.h"
+#include "multicore_data_sampling_interrupts.h"
 
 #include "soc/timer_group_struct.h"
 #include "soc/timer_group_reg.h"

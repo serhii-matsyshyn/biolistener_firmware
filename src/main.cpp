@@ -1,10 +1,10 @@
-#include "Esp32TcpServerClient.h"
+#include "tcp_server_client.h"
 #include <SPI.h>
 #include "config_esp32_biosignals.h"
 
 // To be included only in main(), .ino with setup() to avoid `Multiple Definitions` Linker Error
 #include <ESP32TimerInterrupt.h> //https://github.com/khoih-prog/ESP32TimerInterrupt
-#include "multicore-data-sampling-interrupts.h"
+#include "multicore_data_sampling_interrupts.h"
 
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>

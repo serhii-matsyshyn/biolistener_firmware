@@ -8,7 +8,7 @@
 #include <Arduino.h>
 #include <ESP32TimerInterrupt.hpp> //https://github.com/khoih-prog/ESP32TimerInterrupt
 // FIXME: change to new version of ESP32TimerInterrupt library
-#include "Esp32TcpServerClient.h"
+#include "tcp_server_client.h"
 #include <SPI.h>
 
 #include "config_esp32_biosignals.h"
