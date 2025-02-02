@@ -53,8 +53,12 @@
 
 #if (ADC_USED == ADC_ADS131M08)
 #include "ADS131M08.h"
+#pragma message("ADC_ADS131M08 is used")
+
 #elif (ADC_USED == ADC_AD7771)
 #include "ad7779.h"
+#pragma message("ADC_AD7771 is used")
+
 #else
 #error "ADC_USED is not defined or is not valid"
 #endif

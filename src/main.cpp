@@ -312,6 +312,7 @@ void setup()
     analogSetWidth(12);
 
 #if (!IMU_DISABLE)
+#pragma message("IMU is enabled")
     if (!mpu.begin()) {
         Serial.println("Failed to find MPU6050 chip");
         while (1) {
