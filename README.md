@@ -26,7 +26,11 @@ The following features are planned for future updates:
 - **Unstable Networks Support**: Mode to handle unreliable network connections.
 - **Big Data IoT Server**: Real-time data capture and processing from many boards.
 
-## Useful Information For Developers
+## Easy Getting Started for Users
+- To flash the firmware to the **ESP32 D1 MINI** module, download the latest firmware from the GitHub Actions page.
+- Use [online web tool from Espressif](https://espressif.github.io/esptool-js/) to flash the firmware to the **ESP32 D1 MINI** module.
+
+## Getting Started For Developers
 - Install the **PlatformIO** extension in **Visual Studio Code**.
 - Use `platformio.ini` to configure the project settings and set build flags (specified below):
   - **ADC_USED**:  0: ADC_ADS131M08, 1: ADC_AD7771
