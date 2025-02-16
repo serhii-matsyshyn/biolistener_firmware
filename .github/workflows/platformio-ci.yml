@@ -30,6 +30,9 @@ jobs:
           PLATFORMIO_BUILD_FLAGS: -D ADC_USED=${{matrix.flag_value.value}} -D IMU_DISABLE=${{matrix.flag_value.value}}
         run: pio run
       
+      - name: Copy firmware.bin to root directory
+        run: cp .pio/build/**/firmware.bin firmware-ota.bin
+      
       - name: Packing Firmware
         run: esptool.py --chip ESP32 merge_bin -o merged-flash.bin --flash_mode dio --flash_size 4MB 0x1000 .pio/build/**/bootloader.bin 0x8000 .pio/build/**/partitions.bin 0x10000 .pio/build/**/firmware.bin
 
@@ -39,3 +42,4 @@ jobs:
           name: firmware-BioListener-${{ matrix.flag_value.name }}
           path: |
             merged-flash.bin
+            firmware-ota.bin

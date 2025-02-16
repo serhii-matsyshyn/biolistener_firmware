@@ -59,7 +59,7 @@ void ConfigManager::begin() {
   wifiManager.addParameter(&param_ip);
   wifiManager.setHostname("biolistener");
 
-  std::vector<const char *> menu = {"wifi","info","param","sep","restart","exit"};
+  std::vector<const char *> menu = {"wifi","param","sep","info","update","sep","restart","exit"};
   wifiManager.setMenu(menu);
   wifiManager.setClass("invert"); // dark theme
   wifiManager.setAPClientCheck(true);

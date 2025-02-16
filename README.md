@@ -27,8 +27,13 @@ The following features are planned for future updates:
 - **Big Data IoT Server**: Real-time data capture and processing from many boards.
 
 ## Easy Getting Started for Users
-- To flash the firmware to the **ESP32 D1 MINI** module, download the latest firmware from the GitHub Actions page.
+### Flashing Firmware via USB
+- To flash the firmware to the **ESP32 D1 MINI** module, download the latest firmware from the GitHub Actions page. Use `merged-flash.bin` file.
 - Use [online web tool from Espressif](https://espressif.github.io/esptool-js/) to flash the firmware to the **ESP32 D1 MINI** module.
+
+### Flashing Firmware via OTA
+- To flash the firmware to the **ESP32 D1 MINI** module, download the latest firmware from the GitHub Actions page. Use `firmware-ota.bin` file.
+- Open configuration page as stated below and upload the firmware via OTA.
 
 ## Getting Started For Developers
 - Install the **PlatformIO** extension in **Visual Studio Code**.
